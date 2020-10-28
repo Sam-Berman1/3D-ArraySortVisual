@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>3d sort</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/16.7.0/Tween.js"></script>
+</head>
+
+<body>
+  <script>
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    let boxWidth = 1;
+    let boxHeight = 1;
+    let boxDepth = 1;
+    let random = Math.random();
+    let array = [];
+    let mesharray = [];
+    let block;
+    let mesh;
+    var gridHelper = new THREE.GridHelper(10, 10, null, 0xFF0000);
+    var axesHelper = new THREE.AxesHelper(5);
+
+
+
+
+    // populate an array with objects with random heights.
+    (function() {
+      for (let i = 0; i < 20; i++) {
+        array[i] = {
+          height: Math.random() * 10
+        }
+      }
+    })();
+
+      let arraylength = array.length;
+
+    //render setup
+    let render = function(time) {
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(render);
+      TWEEN.update(time);
+    }
+
+    //slow time between iterations
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // setup scene and camera
+    let scene = new THREE.Scene();
+    let camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000); // fov, aspect, near, far
+    camera.position.z = 20;
+    let renderer = new THREE.WebGLRenderer({
+      antialias: true
+    });
+    renderer.setClearColor("#0000000");
+    renderer.setSize(width, height);
+    var controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+
+    document.body.appendChild(renderer.domElement);
+    window.addEventListener('resize', () => {
+      renderer.setSize(width, height)
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+    })
+
+
+    // create floor for blocks, set color, and add them to the scene
+    let floor = new THREE.BoxGeometry(boxWidth*arraylength, .2, boxDepth*arraylength);
+    let floorMaterial = new THREE.MeshLambertMaterial({
+      color: 0xFFFFFF
+    })
+    let floorMesh = new THREE.Mesh(floor, floorMaterial);
+    scene.add(floorMesh);
+
+    // barContainer is used to adjust the group of blocks position
+    let barContainer = new THREE.Group();
+
+    // create blocks, set color
+    for (let i = 0; i < array.length; i++) {
+      block = new THREE.BoxGeometry(boxWidth, array[i].height, boxDepth);
+      let material = new THREE.MeshLambertMaterial({
+        color: 0x00FFFF
+      })
+      let mesh = new THREE.Mesh(block, material);
+
+      // add mesh to objects in array
+      array[i].mesh = mesh;
+
+      // set initial block position
+      mesh.position.set(i * boxWidth, array[i].height / 2, i * boxDepth);
+
+      // push mesh to array
+      mesharray.push(mesh);
+      barContainer.add(mesh);
+    }
+
+
+    scene.add(barContainer);
+
+    // create scene lighting
+  var pointLight = new THREE.PointLight( 0xffffff, 1, 100 );
+  let backlight = new THREE.PointLight(0xFFFFFF, 1, 100);
+  backlight.position.set( -10, 10, -10 );
+  pointLight.position.set( 10, 10, 10 );
+
+  scene.add( pointLight, backlight );
+
+
+  var sphereSize = 3      // let Backlight = new THREE.AmbientLight(0xFFFFFF, .5);;
+  var BackLightHelper = new THREE.PointLightHelper ( backlight, sphereSize)
+  var pointLightHelper = new THREE.PointLightHelper( pointLight, sphereSize );
+  scene.add( pointLightHelper, BackLightHelper );
+
+    // set initial position of blocks
+    barContainer.position.set(-9.5, 0, -9.5);
+
+    // bubble sort works by asking if 'I' am bigger than my neighbor- if 'I' am, we swap positions.
+    async function bubbleSort(inputArr) {
+      let len = inputArr.length;
+      for (let i = 0; i < len - 1; i++) {
+        current = inputArr[i];
+        next = inputArr[i+1];
+        prev = inputArr[i-1];
+        if (inputArr[i].height > inputArr[i + 1].height) {
+          let tmp = inputArr[i];
+          inputArr[i] = inputArr[i + 1];
+          inputArr[i + 1] = tmp;
+          // create pointers to previous, current, & next block for color stuff
+          current.mesh.material.color.setHex(0xFF0FFF);
+          next.mesh.material.color.setHex(0x00FFFF);
+          if(prev){
+            prev.mesh.material.color.setHex(0x00FFFF);
+          }
+
+          await moveBoxHelper();
+          }
+          else {
+            next.mesh.material.color.setHex(0x00FFFF);
+            if(prev){
+            prev.mesh.material.color.setHex(0x00FFFF);
+          }
+        }
+      }
+    }
+
+    // tweens are used for smooth animation
+    async function moveBox(container, i) {
+
+      let currentmesh = container.mesh;
+      let currentHeight = container.height;
+
+      var coords = {
+        x: currentmesh.position.x,
+        z: currentmesh.position.z
+      };
+      var tween = new TWEEN.Tween(coords)
+        .to({
+          x: i * boxWidth,
+          z: i * boxDepth
+        }, 500)
+        .easing(TWEEN.Easing.Elastic.Out)
+        .onUpdate(function() {
+          currentmesh.position.set(this.x, currentHeight / 2, this.z)
+        })
+        .start();
+
+    }
+
+    // helper functions with sleep delay
+    async function moveBoxHelper() {
+      for (let i = 0; i < array.length; i++) {
+        moveBox(array[i], i);
+      }
+      return sleep(250);
+    }
+
+    async function bubbleSortHelper() {
+      while (true) {
+        await bubbleSort(array);
+        // console.log(array);
+        await sleep(250);
+      }
+    }
+
+
+    render()
+    bubbleSortHelper()
+  </script>
+</body>
+
+</html>
+<!--  -->
