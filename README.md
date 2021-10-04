@@ -1,9 +1,8 @@
 <h1>3D-BubbleSort Visual (adding other sorting algorithms sooon)</h1>
 <h3> About: </h3>
 <p> 
-  Thank you Jasper for your help with this one. check out his page (https://github.com/wellcaffeinated) He has some truely amazing projects
 This program uses THREE.js to visualize how bubble sort works, It has orbit controls so you may use your arrow-keys or click and drag to look around. 
-  this project will eventually become a hub of visualizing sorting algorithms, give it a run. 
+  Maybe this project will eventually become a hub of visualizing sorting algorithms, give it a run. 
 
 </p>
 <h3> License MIT </h3>
